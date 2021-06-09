@@ -27,7 +27,7 @@ func removeCommand() cli.Command {
 
 Remove provisioner by name:
 '''
-$ step beta ca provisioner remove admin-jwk
+$ step beta ca provisioner remove acme
 '''
 `,
 	}

@@ -31,8 +31,8 @@ func addCommand() cli.Command {
 		Name:   "add",
 		Action: cli.ActionFunc(addAction),
 		Usage:  "add a provisioner to the CA configuration",
-		UsageText: `**step beta ca provisioner add** <name> **--type**=JWK [**--jwk-file**=<file>]
-[**--create**] [**--password-file**=<file>]
+		UsageText: `**step beta ca provisioner add** <name> **--type**=JWK [**--public-key**=<file>]
+[**--private-key**=<file>] [**--create**] [**--password-file**=<file>]
 
 **step beta ca provisioner add** <name> **--type**=OIDC
 [**--client-id**=<id>] [**--client-secret**=<secret>]
@@ -105,8 +105,12 @@ func addCommand() cli.Command {
 				Usage: `Create the JWK key pair for the provisioner.`,
 			},
 			cli.StringFlag{
-				Name:  "jwk-file",
+				Name:  "private-key",
 				Usage: `The <file> containing the JWK private key.`,
+			},
+			cli.StringFlag{
+				Name:  "public-key",
+				Usage: `The <file> containing the JWK public key.`,
 			},
 
 			// OIDC provisioner flags
@@ -131,6 +135,15 @@ func addCommand() cli.Command {
 				Usage: `The <email> of an admin user in an OpenID Connect provisioner, this user
 will not have restrictions in the certificates to sign. Use the
 '--admin' flag multiple times to configure multiple administrators.`,
+			},
+			cli.StringSliceFlag{
+				Name: "group",
+				Usage: `The <group> list used to validate the groups extenstion in an OpenID Connect token.
+Use the '--group' flag multiple times to configure multiple groups.`,
+			},
+			cli.StringFlag{
+				Name:  "tenant-id",
+				Usage: `The <tenant-id> used to replace the templatized {tenantid} in the OpenID Configuration.`,
 			},
 
 			// X5C provisioner flags
@@ -297,6 +310,9 @@ func createJWKDetails(ctx *cli.Context) (*linkedca.ProvisionerDetails, error) {
 		if ctx.IsSet("public-key") {
 			return nil, errs.IncompatibleFlag(ctx, "create", "public-key")
 		}
+		if ctx.IsSet("private-key") {
+			return nil, errs.IncompatibleFlag(ctx, "create", "private-key")
+		}
 		pass, err := ui.PromptPasswordGenerate("Please enter a password to encrypt the provisioner private key? [leave empty and we'll generate one]", ui.WithValue(password))
 		if err != nil {
 			return nil, err
@@ -306,20 +322,24 @@ func createJWKDetails(ctx *cli.Context) (*linkedca.ProvisionerDetails, error) {
 			return nil, err
 		}
 	} else {
-		jwkFile := ctx.String("private-key")
-		if jwkFile == "" {
-			return nil, errs.RequiredFlag(ctx, "private-key")
+		var jwkFile string
+		if ctx.IsSet("public-key") && ctx.IsSet("private-key") {
+			return nil, errs.IncompatibleFlag(ctx, "public-key", "private-key")
+		} else if !ctx.IsSet("public-key") && !ctx.IsSet("private-key") {
+			return nil, errs.RequiredWithOrFlag(ctx, "public-key", "private-key")
+		} else if ctx.IsSet("public-key") {
+			jwkFile = ctx.String("public-key")
+			jwk, err = jose.ParseKey(jwkFile)
+		} else {
+			jwkFile = ctx.String("private-key")
+			jwk, err = jose.ParseKey(jwkFile)
 		}
-		jwk, err = jose.ParseKey(jwkFile)
 		if err != nil {
 			return nil, errs.FileError(err, jwkFile)
 		}
 		// Only use asymmetric cryptography
 		if _, ok := jwk.Key.([]byte); ok {
 			return nil, errors.New("invalid JWK: a symmetric key cannot be used as a provisioner")
-		}
-		if jwk.IsPublic() {
-			return nil, errors.New("invalid JWK: expected a private key")
 		}
 		// Create kid if not present
 		if len(jwk.KeyID) == 0 {
@@ -329,27 +349,33 @@ func createJWKDetails(ctx *cli.Context) (*linkedca.ProvisionerDetails, error) {
 			}
 		}
 
-		// Encrypt JWK
-		jwe, err = jose.EncryptJWK(jwk)
-		if err != nil {
-			return nil, err
+		if !jwk.IsPublic() {
+			// Encrypt JWK
+			jwe, err = jose.EncryptJWK(jwk)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	jwkPubBytes, err := jwk.MarshalJSON()
 	if err != nil {
 		return nil, errors.Wrap(err, "error marshaling JWK")
 	}
-	jwePrivStr, err := jwe.CompactSerialize()
-	if err != nil {
-		return nil, errors.Wrap(err, "error serializing JWE")
+	jwkProv := &linkedca.JWKProvisioner{
+		PublicKey: jwkPubBytes,
+	}
+
+	if jwe != nil {
+		jwePrivStr, err := jwe.CompactSerialize()
+		if err != nil {
+			return nil, errors.Wrap(err, "error serializing JWE")
+		}
+		jwkProv.EncryptedPrivateKey = []byte(jwePrivStr)
 	}
 
 	return &linkedca.ProvisionerDetails{
 		Data: &linkedca.ProvisionerDetails_JWK{
-			JWK: &linkedca.JWKProvisioner{
-				PublicKey:           jwkPubBytes,
-				EncryptedPrivateKey: []byte(jwePrivStr),
-			},
+			JWK: jwkProv,
 		},
 	}, nil
 }
@@ -358,7 +384,7 @@ func createACMEDetails(ctx *cli.Context) (*linkedca.ProvisionerDetails, error) {
 	return &linkedca.ProvisionerDetails{
 		Data: &linkedca.ProvisionerDetails_ACME{
 			ACME: &linkedca.ACMEProvisioner{
-				ForceCn: ctx.IsSet("forceCN"),
+				ForceCn: ctx.Bool("forceCN"),
 			},
 		},
 	}, nil
@@ -405,9 +431,9 @@ func createX5CDetails(ctx *cli.Context) (*linkedca.ProvisionerDetails, error) {
 }
 
 func createK8SSADetails(ctx *cli.Context) (*linkedca.ProvisionerDetails, error) {
-	pemKeysF := ctx.String("pem-keys")
+	pemKeysF := ctx.String("public-key")
 	if len(pemKeysF) == 0 {
-		return nil, errs.RequiredWithFlagValue(ctx, "type", "k8sSA", "pem-keys")
+		return nil, errs.RequiredWithFlagValue(ctx, "type", "k8sSA", "public-key")
 	}
 
 	pemKeysB, err := ioutil.ReadFile(pemKeysF)
@@ -477,7 +503,9 @@ func createOIDCDetails(ctx *cli.Context) (*linkedca.ProvisionerDetails, error) {
 				ConfigurationEndpoint: confURL,
 				Admins:                ctx.StringSlice("admin"),
 				Domains:               ctx.StringSlice("domain"),
+				Groups:                ctx.StringSlice("group"),
 				ListenAddress:         ctx.String("listen-address"),
+				TenantId:              ctx.String("tenant-id"),
 			},
 		},
 	}, nil

@@ -27,7 +27,7 @@ func updateCommand() cli.Command {
 			},
 			cli.StringFlag{
 				Name:  "provisioner",
-				Usage: `Update the admin name.`,
+				Usage: `Filter admin by provisioner name`,
 			},
 			flags.X5cCert,
 			flags.X5cKey,

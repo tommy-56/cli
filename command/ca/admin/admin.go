@@ -16,7 +16,7 @@ func Command() cli.Command {
 	return cli.Command{
 		Name:      "admin",
 		Usage:     "create and manage the certificate authority admins",
-		UsageText: "step ca admin <subcommand> [arguments] [global-flags] [subcommand-flags]",
+		UsageText: "step beta ca admin <subcommand> [arguments] [global-flags] [subcommand-flags]",
 		Subcommands: cli.Commands{
 			listCommand(),
 			addCommand(),
@@ -119,6 +119,7 @@ func adminPrompt(ctx *cli.Context, client *ca.AdminClient, admins []*linkedca.Ad
 	var items []*adminSelect
 	for _, adm := range cliAdmins {
 		items = append(items, &adminSelect{
+			//Name: fmt.Sprintf("%s\t%s (%s)\t%s", adm.Subject,
 			Name: fmt.Sprintf("subject: %s, provisioner: %s(%s), type: %s", adm.Subject,
 				adm.ProvisionerName, adm.ProvisionerType, adm.Type),
 			CLIAdmin: adm,
@@ -132,7 +133,8 @@ func adminPrompt(ctx *cli.Context, client *ca.AdminClient, admins []*linkedca.Ad
 		return items[0].CLIAdmin, nil
 	}
 
-	i, _, err := ui.Select("Select an admin:", items, ui.WithSelectTemplates(ui.NamedSelectTemplates("Admin")))
+	i, _, err := ui.Select("Select an admin:", items,
+		ui.WithSelectTemplates(ui.NamedSelectTemplates("Admin")))
 	if err != nil {
 		return nil, err
 	}
