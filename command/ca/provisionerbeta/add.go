@@ -367,21 +367,15 @@ func createJWKDetails(ctx *cli.Context) (*linkedca.ProvisionerDetails, error) {
 			return nil, err
 		}
 	} else {
-		var jwkFile string
-		if ctx.IsSet("public-key") && ctx.IsSet("private-key") {
-			return nil, errs.IncompatibleFlag(ctx, "public-key", "private-key")
-		} else if !ctx.IsSet("public-key") && !ctx.IsSet("private-key") {
-			return nil, errs.RequiredWithOrFlag(ctx, "public-key", "private-key")
-		} else if ctx.IsSet("public-key") {
-			jwkFile = ctx.String("public-key")
-			jwk, err = jose.ParseKey(jwkFile)
-		} else {
-			jwkFile = ctx.String("private-key")
-			jwk, err = jose.ParseKey(jwkFile)
+		if !ctx.IsSet("public-key") {
+			return nil, errs.RequiredWithFlagValue(ctx, "create", "false", "public-key")
 		}
+		jwkFile := ctx.String("public-key")
+		jwk, err = jose.ParseKey(jwkFile)
 		if err != nil {
 			return nil, errs.FileError(err, jwkFile)
 		}
+
 		// Only use asymmetric cryptography
 		if _, ok := jwk.Key.([]byte); ok {
 			return nil, errors.New("invalid JWK: a symmetric key cannot be used as a provisioner")
@@ -394,14 +388,43 @@ func createJWKDetails(ctx *cli.Context) (*linkedca.ProvisionerDetails, error) {
 			}
 		}
 
-		if !jwk.IsPublic() {
-			// Encrypt JWK
-			jwe, err = jose.EncryptJWK(jwk)
+		if ctx.IsSet("private-key") {
+			jwkFile = ctx.String("private-key")
+			b, err := ioutil.ReadFile(jwkFile)
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrapf(err, "error reading %s", jwkFile)
+			}
+
+			// Attempt to parse private key as Encrypted JSON.
+			// If this operation fails then either,
+			//   1. the key is not encrypted
+			//   2. the key has an invalid format
+			//
+			// Attempt to parse as decrypted private key.
+			jwe, err = jose.ParseEncrypted(string(b))
+			if err != nil {
+				privjwk, err := jose.ParseKey(jwkFile)
+				if err != nil {
+					return nil, errs.FileError(err, jwkFile)
+				}
+
+				if privjwk.IsPublic() {
+					return nil, errors.New("invalid jwk: private-key is a public key")
+				}
+
+				// Encrypt JWK
+				opts := []jose.Option{}
+				if ctx.IsSet("password-file") {
+					opts = append(opts, jose.WithPasswordFile(ctx.String("password-file")))
+				}
+				jwe, err = jose.EncryptJWK(privjwk, opts...)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
+
 	jwkPubBytes, err := jwk.MarshalJSON()
 	if err != nil {
 		return nil, errors.Wrap(err, "error marshaling JWK")

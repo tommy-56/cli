@@ -17,6 +17,8 @@ import (
 	"github.com/smallstep/cli/crypto/pemutil"
 	"github.com/smallstep/cli/errs"
 	"github.com/smallstep/cli/flags"
+	"github.com/smallstep/cli/jose"
+	"github.com/smallstep/cli/ui"
 	"github.com/smallstep/cli/utils"
 	"github.com/smallstep/cli/utils/cautils"
 	"github.com/urfave/cli"
@@ -202,36 +204,52 @@ func updateTemplates(ctx *cli.Context, p *linkedca.Provisioner) error {
 		p.X509Template = &linkedca.Template{}
 	}
 	if x509TemplateFile := ctx.String("x509-template"); ctx.IsSet("x509-template") {
-		b, err := utils.ReadFile(x509TemplateFile)
-		if err != nil {
-			return err
+		if x509TemplateFile == "" {
+			p.X509Template.Template = nil
+		} else {
+			b, err := utils.ReadFile(x509TemplateFile)
+			if err != nil {
+				return err
+			}
+			p.X509Template.Template = b
 		}
-		p.X509Template.Template = b
 	}
 	if x509TemplateDataFile := ctx.String("x509-template-data"); ctx.IsSet("x509-template-data") {
-		b, err := utils.ReadFile(x509TemplateDataFile)
-		if err != nil {
-			return err
+		if x509TemplateDataFile == "" {
+			p.X509Template.Data = nil
+		} else {
+			b, err := utils.ReadFile(x509TemplateDataFile)
+			if err != nil {
+				return err
+			}
+			p.X509Template.Data = b
 		}
-		p.X509Template.Data = b
 	}
 	// Read ssh template if passed
 	if p.SshTemplate == nil {
 		p.SshTemplate = &linkedca.Template{}
 	}
 	if sshTemplateFile := ctx.String("ssh-template"); ctx.IsSet("ssh-template") {
-		b, err := utils.ReadFile(sshTemplateFile)
-		if err != nil {
-			return err
+		if sshTemplateFile == "" {
+			p.SshTemplate.Template = nil
+		} else {
+			b, err := utils.ReadFile(sshTemplateFile)
+			if err != nil {
+				return err
+			}
+			p.SshTemplate.Template = b
 		}
-		p.SshTemplate.Template = b
 	}
 	if sshTemplateDataFile := ctx.String("ssh-template-data"); ctx.IsSet("ssh-template-data") {
-		b, err := utils.ReadFile(sshTemplateDataFile)
-		if err != nil {
-			return err
+		if sshTemplateDataFile == "" {
+			p.SshTemplate.Data = nil
+		} else {
+			b, err := utils.ReadFile(sshTemplateDataFile)
+			if err != nil {
+				return err
+			}
+			p.SshTemplate.Data = b
 		}
-		p.SshTemplate.Data = b
 	}
 	return nil
 }
@@ -300,95 +318,116 @@ func updateClaims(ctx *cli.Context, p *linkedca.Provisioner) {
 }
 
 func updateJWKDetails(ctx *cli.Context, p *linkedca.Provisioner) error {
-	/*
-		var (
-			err      error
-			password string
-		)
-		if passwordFile := ctx.String("password-file"); len(passwordFile) > 0 {
-			password, err = utils.ReadStringPasswordFromFile(passwordFile)
-			if err != nil {
-				return nil, err
-			}
-		}
+	data, ok := p.Details.GetData().(*linkedca.ProvisionerDetails_JWK)
+	if !ok {
+		return errors.New("error casting details to ACME type")
+	}
+	details := data.JWK
 
-		var (
-			jwk *jose.JSONWebKey
-			jwe *jose.JSONWebEncryption
-		)
-		if ctx.Bool("create") {
-			if ctx.IsSet("public-key") {
-				return nil, errs.IncompatibleFlag(ctx, "create", "public-key")
-			}
-			if ctx.IsSet("private-key") {
-				return nil, errs.IncompatibleFlag(ctx, "create", "private-key")
-			}
-			pass, err := ui.PromptPasswordGenerate("Please enter a password to encrypt the provisioner private key? [leave empty and we'll generate one]", ui.WithValue(password))
+	var (
+		err      error
+		password string
+	)
+	if passwordFile := ctx.String("password-file"); len(passwordFile) > 0 {
+		password, err = utils.ReadStringPasswordFromFile(passwordFile)
+		if err != nil {
+			return err
+		}
+	}
+
+	var (
+		jwk *jose.JSONWebKey
+		jwe *jose.JSONWebEncryption
+	)
+	if ctx.Bool("create") {
+		if ctx.IsSet("public-key") {
+			return errs.IncompatibleFlag(ctx, "create", "public-key")
+		}
+		if ctx.IsSet("private-key") {
+			return errs.IncompatibleFlag(ctx, "create", "private-key")
+		}
+		pass, err := ui.PromptPasswordGenerate("Please enter a password to encrypt the provisioner private key? [leave empty and we'll generate one]", ui.WithValue(password))
+		if err != nil {
+			return err
+		}
+		jwk, jwe, err = jose.GenerateDefaultKeyPair(pass)
+		if err != nil {
+			return err
+		}
+	} else {
+		if ctx.IsSet("public-key") {
+			jwkFile := ctx.String("public-key")
+			jwk, err = jose.ParseKey(jwkFile)
 			if err != nil {
-				return nil, err
+				return errs.FileError(err, jwkFile)
 			}
-			jwk, jwe, err = jose.GenerateDefaultKeyPair(pass)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			var jwkFile string
-			if ctx.IsSet("public-key") && ctx.IsSet("private-key") {
-				return nil, errs.IncompatibleFlag(ctx, "public-key", "private-key")
-			} else if !ctx.IsSet("public-key") && !ctx.IsSet("private-key") {
-				return nil, errs.RequiredWithOrFlag(ctx, "public-key", "private-key")
-			} else if ctx.IsSet("public-key") {
-				jwkFile = ctx.String("public-key")
-				jwk, err = jose.ParseKey(jwkFile)
-			} else {
-				jwkFile = ctx.String("private-key")
-				jwk, err = jose.ParseKey(jwkFile)
-			}
-			if err != nil {
-				return nil, errs.FileError(err, jwkFile)
-			}
+
 			// Only use asymmetric cryptography
 			if _, ok := jwk.Key.([]byte); ok {
-				return nil, errors.New("invalid JWK: a symmetric key cannot be used as a provisioner")
+				return errors.New("invalid JWK: a symmetric key cannot be used as a provisioner")
 			}
 			// Create kid if not present
 			if len(jwk.KeyID) == 0 {
 				jwk.KeyID, err = jose.Thumbprint(jwk)
 				if err != nil {
-					return nil, err
-				}
-			}
-
-			if !jwk.IsPublic() {
-				// Encrypt JWK
-				jwe, err = jose.EncryptJWK(jwk)
-				if err != nil {
-					return nil, err
+					return err
 				}
 			}
 		}
+
+		if ctx.IsSet("private-key") {
+			jwkFile := ctx.String("private-key")
+			b, err := ioutil.ReadFile(jwkFile)
+			if err != nil {
+				return errors.Wrapf(err, "error reading %s", jwkFile)
+			}
+
+			// Attempt to parse private key as Encrypted JSON.
+			// If this operation fails then either,
+			//   1. the key is not encrypted
+			//   2. the key has an invalid format
+			//
+			// Attempt to parse as decrypted private key.
+			jwe, err = jose.ParseEncrypted(string(b))
+			if err != nil {
+				privjwk, err := jose.ParseKey(jwkFile)
+				if err != nil {
+					return errs.FileError(err, jwkFile)
+				}
+
+				if privjwk.IsPublic() {
+					return errors.New("invalid jwk: private-key is a public key")
+				}
+
+				// Encrypt JWK
+				opts := []jose.Option{}
+				if ctx.IsSet("password-file") {
+					opts = append(opts, jose.WithPasswordFile(ctx.String("password-file")))
+				}
+				jwe, err = jose.EncryptJWK(privjwk, opts...)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	if jwk != nil {
 		jwkPubBytes, err := jwk.MarshalJSON()
 		if err != nil {
-			return nil, errors.Wrap(err, "error marshaling JWK")
+			return errors.Wrap(err, "error marshaling JWK")
 		}
-		jwkProv := &linkedca.JWKProvisioner{
-			PublicKey: jwkPubBytes,
-		}
+		details.PublicKey = jwkPubBytes
+	}
 
-		if jwe != nil {
-			jwePrivStr, err := jwe.CompactSerialize()
-			if err != nil {
-				return nil, errors.Wrap(err, "error serializing JWE")
-			}
-			jwkProv.EncryptedPrivateKey = []byte(jwePrivStr)
+	if jwe != nil {
+		jwePrivStr, err := jwe.CompactSerialize()
+		if err != nil {
+			return errors.Wrap(err, "error serializing JWE")
 		}
+		details.EncryptedPrivateKey = []byte(jwePrivStr)
+	}
 
-		return &linkedca.ProvisionerDetails{
-			Data: &linkedca.ProvisionerDetails_JWK{
-				JWK: jwkProv,
-			},
-		}, nil
-	*/
 	return nil
 }
 
