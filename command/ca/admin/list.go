@@ -5,11 +5,11 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/smallstep/certificates/linkedca"
 	"github.com/smallstep/cli/errs"
 	"github.com/smallstep/cli/flags"
 	"github.com/smallstep/cli/utils/cautils"
 	"github.com/urfave/cli"
+	"go.step.sm/linkedca"
 )
 
 func listCommand() cli.Command {

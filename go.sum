@@ -316,6 +316,8 @@ github.com/golang/protobuf v1.4.2/go.mod h1:oDoupMAO8OvCJWAcko0GGGIgR6R6ocIYbsSw
 github.com/golang/protobuf v1.4.3/go.mod h1:oDoupMAO8OvCJWAcko0GGGIgR6R6ocIYbsSw735rRwI=
 github.com/golang/protobuf v1.5.0 h1:LUVKkCeviFUMKqHa4tXIIij/lbhnMbP7Fn5wKdKkRh4=
 github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaSAoJOfIk=
+github.com/golang/protobuf v1.5.2 h1:ROPKBNFfQgOUMifHyP+KYbvpjbdoFNs+aK7DXlji0Tw=
+github.com/golang/protobuf v1.5.2/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
 github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
 github.com/golang/snappy v0.0.1/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
 github.com/golang/snappy v0.0.2 h1:aeE13tS0IiQgFjYdoL8qN3K1N2bXXtI6Vi51/y7BpMw=
@@ -793,6 +795,8 @@ github.com/smallstep/certificates v0.16.0-rc.2.0.20210603223204-2c0a74ee9a7a h1:
 github.com/smallstep/certificates v0.16.0-rc.2.0.20210603223204-2c0a74ee9a7a/go.mod h1:4iL+2ef1GoVaDYCiKNE6jvzOzy/dXSU+x5N2K4c/ZRU=
 github.com/smallstep/certificates v0.16.0-rc.2.0.20210603231215-a365e5fa544b h1:jKPw4bb21Sg8lmujYwrJl/cdXcd9K2AUAWEp81I6HJw=
 github.com/smallstep/certificates v0.16.0-rc.2.0.20210603231215-a365e5fa544b/go.mod h1:4iL+2ef1GoVaDYCiKNE6jvzOzy/dXSU+x5N2K4c/ZRU=
+github.com/smallstep/certificates v0.16.0-rc.2.0.20210614062248-56e5e64d14fd h1:Wrt1a0ExLHN1wT1mVx3OV6SvU7O1xcRlk1rHfQelxPg=
+github.com/smallstep/certificates v0.16.0-rc.2.0.20210614062248-56e5e64d14fd/go.mod h1:oglK+TLzZrEdEFXU2+/Re0BnesyPewiiJpHtr52+oEo=
 github.com/smallstep/certinfo v1.5.0 h1:hxJPQgy9eyjSDVmcWXR/17ucjqZ9zgQHyGyD7AOEidM=
 github.com/smallstep/certinfo v1.5.0/go.mod h1:UWVjfGJeUc8O9PDR6VqI2CgWrQbF1HNMld1BSarYV2Q=
 github.com/smallstep/nosql v0.3.6 h1:cq6a3NwjFJxkVlWU1T4qGskcfEXr0fO1WqQrraDO1Po=
@@ -935,6 +939,8 @@ go.step.sm/cli-utils v0.4.0 h1:dni6gR/6/LOqfbzm/yUdgz5O12tkxX17SxA9+pRMidI=
 go.step.sm/cli-utils v0.4.0/go.mod h1:1zFgatDqEJ1Y4MNStdWa0b1NPc1fvSHbDJC+wZ6iQlE=
 go.step.sm/crypto v0.8.3 h1:TO/OPlaUrYXhs8srGEFNyL6OWVQvRmEPCUONNnQUuEM=
 go.step.sm/crypto v0.8.3/go.mod h1:+CYG05Mek1YDqi5WK0ERc6cOpKly2i/a5aZmU1sfGj0=
+go.step.sm/linkedca v0.0.0-20210611183751-27424aae8d25 h1:ncJqviWswJT19IdnfOYQGKG1zL7IDy4lAJz1PuM3fgw=
+go.step.sm/linkedca v0.0.0-20210611183751-27424aae8d25/go.mod h1:5uTRjozEGSPAZal9xJqlaD38cvJcLe3o1VAFVjqcORo=
 go.uber.org/atomic v1.3.2/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/atomic v1.5.0 h1:OI5t8sDa1Or+q8AeE+yKeB/SDYioSHAgcVljj9JIETY=
@@ -1250,6 +1256,8 @@ google.golang.org/genproto v0.0.0-20201019141844-1ed22bb0c154 h1:bFFRpT+e8JJVY7l
 google.golang.org/genproto v0.0.0-20201019141844-1ed22bb0c154/go.mod h1:FWY/as6DDZQgahTzZj3fqbO1CbirC29ZNUFHwi0/+no=
 google.golang.org/grpc v1.29.1 h1:EC2SB8S04d2r73uptxphDSUG+kTKVgjRPF+N3xpxRB4=
 google.golang.org/grpc v1.29.1/go.mod h1:itym6AZVZYACWQqET3MqgPpjcuV5QH3BxFS3IjizoKk=
+google.golang.org/grpc v1.32.0 h1:zWTV+LMdc3kaiJMSTOFz2UgSBgx8RNQoTGiZu3fR9S0=
+google.golang.org/grpc v1.32.0/go.mod h1:N36X2cJ7JwdamYAgDz+s+rVMFjt3numwzf/HckM8pak=
 google.golang.org/protobuf v0.0.0-20200109180630-ec00e32a8dfd/go.mod h1:DFci5gLYBciE7Vtevhsrf46CRTquxDuWsQurQQe4oz8=
 google.golang.org/protobuf v0.0.0-20200221191635-4d8936d0db64/go.mod h1:kwYJMbMJ01Woi6D6+Kah6886xMZcty6N08ah7+eCXa0=
 google.golang.org/protobuf v0.0.0-20200228230310-ab0ca4ff8a60/go.mod h1:cfTl7dwQJ+fmap5saPgwCLgHXTUD7jkjRqWcaiX5VyM=

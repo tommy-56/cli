@@ -14,7 +14,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/smallstep/certificates/authority/provisioner"
-	"github.com/smallstep/certificates/linkedca"
 	"github.com/smallstep/cli/crypto/pemutil"
 	"github.com/smallstep/cli/errs"
 	"github.com/smallstep/cli/flags"
@@ -23,6 +22,7 @@ import (
 	"github.com/smallstep/cli/utils"
 	"github.com/smallstep/cli/utils/cautils"
 	"github.com/urfave/cli"
+	"go.step.sm/linkedca"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -30,7 +30,7 @@ func addCommand() cli.Command {
 	return cli.Command{
 		Name:   "add",
 		Action: cli.ActionFunc(addAction),
-		Usage:  "add a provisioner to the CA configuration",
+		Usage:  "add a provisioner",
 		UsageText: `**step beta ca provisioner add** <name> **--type**=JWK [**--public-key**=<file>]
 [**--private-key**=<file>] [**--create**] [**--password-file**=<file>]
 
@@ -86,18 +86,22 @@ func addCommand() cli.Command {
 
     **SSHPOP**
     : Uses an SSH Certificate / private key pair to sign provisioning tokens.`},
-			cli.BoolFlag{
-				Name:  "ssh",
-				Usage: `Enable SSH on the new provisioners.`,
-			},
-			cli.StringFlag{
-				Name:  "x509-template",
-				Usage: `The x509 certificate template <file>, a JSON representation of the certificate to create.`,
-			},
-			cli.StringFlag{
-				Name:  "ssh-template",
-				Usage: `The x509 certificate template <file>, a JSON representation of the certificate to create.`,
-			},
+			x509TemplateFlag,
+			x509TemplateDataFlag,
+			sshTemplateFlag,
+			sshTemplateDataFlag,
+			x509MinDurFlag,
+			x509MaxDurFlag,
+			x509DefaultDurFlag,
+			sshUserMinDurFlag,
+			sshUserMaxDurFlag,
+			sshUserDefaultDurFlag,
+			sshHostMinDurFlag,
+			sshHostMaxDurFlag,
+			sshHostDefaultDurFlag,
+			disableRenewalFlag,
+			enableX509Flag,
+			enableSSHFlag,
 
 			// JWK provisioner flags
 			cli.BoolFlag{
@@ -152,13 +156,10 @@ Use the '--group' flag multiple times to configure multiple groups.`,
 				Usage: `Root certificate (chain) <file> used to validate the signature on X5C
 provisioning tokens.`,
 			},
-			// K8sSA provisioner flags
-			cli.StringFlag{
-				Name: "pem-keys",
-				Usage: `Public key <file> for validating signatures on K8s Service Account Tokens.
-PEM formatted bundle (can have multiple PEM blocks in the same file) of public
-keys and x509 Certificates.`,
-			},
+
+			// ACME provisioner flags
+			forceCNFlag,
+
 			flags.X5cCert,
 			flags.X5cKey,
 			flags.PasswordFile,
@@ -215,7 +216,9 @@ func addAction(ctx *cli.Context) (err error) {
 	}
 
 	x509TemplateFile := ctx.String("x509-template")
+	x509TemplateDataFile := ctx.String("x509-template-data")
 	sshTemplateFile := ctx.String("ssh-template")
+	sshTemplateDataFile := ctx.String("ssh-template-data")
 
 	args := ctx.Args()
 
@@ -226,19 +229,61 @@ func addAction(ctx *cli.Context) (err error) {
 	}
 
 	// Read x509 template if passed
+	p.X509Template = &linkedca.Template{}
 	if x509TemplateFile != "" {
 		b, err := utils.ReadFile(x509TemplateFile)
 		if err != nil {
 			return err
 		}
-		p.X509Template = b
+		p.X509Template.Template = b
 	}
+	if x509TemplateDataFile != "" {
+		b, err := utils.ReadFile(x509TemplateDataFile)
+		if err != nil {
+			return err
+		}
+		p.X509Template.Data = b
+	}
+	// Read ssh template if passed
+	p.SshTemplate = &linkedca.Template{}
 	if sshTemplateFile != "" {
 		b, err := utils.ReadFile(sshTemplateFile)
 		if err != nil {
 			return err
 		}
-		p.SshTemplate = b
+		p.SshTemplate.Template = b
+	}
+	if sshTemplateDataFile != "" {
+		b, err := utils.ReadFile(sshTemplateDataFile)
+		if err != nil {
+			return err
+		}
+		p.SshTemplate.Data = b
+	}
+
+	p.Claims = &linkedca.Claims{
+		X509: &linkedca.X509Claims{
+			Durations: &linkedca.Durations{
+				Min:     ctx.String("x509-min-dur"),
+				Max:     ctx.String("x509-max-dur"),
+				Default: ctx.String("x509-default-dur"),
+			},
+			Enabled: !(ctx.IsSet("x509") && ctx.Bool("x509") == false),
+		},
+		Ssh: &linkedca.SSHClaims{
+			UserDurations: &linkedca.Durations{
+				Min:     ctx.String("ssh-user-min-dur"),
+				Max:     ctx.String("ssh-user-max-dur"),
+				Default: ctx.String("ssh-user-default-dur"),
+			},
+			HostDurations: &linkedca.Durations{
+				Min:     ctx.String("ssh-host-min-dur"),
+				Max:     ctx.String("ssh-host-max-dur"),
+				Default: ctx.String("ssh-host-default-dur"),
+			},
+			Enabled: !(ctx.IsSet("ssh") && ctx.Bool("ssh") == false),
+		},
+		DisableRenewal: ctx.Bool("disable-renewal"),
 	}
 
 	client, err := cautils.NewAdminClient(ctx)
@@ -384,7 +429,7 @@ func createACMEDetails(ctx *cli.Context) (*linkedca.ProvisionerDetails, error) {
 	return &linkedca.ProvisionerDetails{
 		Data: &linkedca.ProvisionerDetails_ACME{
 			ACME: &linkedca.ACMEProvisioner{
-				ForceCn: ctx.Bool("forceCN"),
+				ForceCn: ctx.Bool("force-cn"),
 			},
 		},
 	}, nil

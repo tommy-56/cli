@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/smallstep/certificates/ca"
-	"github.com/smallstep/certificates/linkedca"
 	"github.com/smallstep/cli/errs"
 	"github.com/smallstep/cli/ui"
 	"github.com/urfave/cli"
+	"go.step.sm/linkedca"
 )
 
 // Command returns the jwk subcommand.
