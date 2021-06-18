@@ -268,7 +268,7 @@ func addAction(ctx *cli.Context) (err error) {
 				Max:     ctx.String("x509-max-dur"),
 				Default: ctx.String("x509-default-dur"),
 			},
-			Enabled: !(ctx.IsSet("x509") && ctx.Bool("x509") == false),
+			Enabled: !(ctx.IsSet("x509") && !ctx.Bool("x509")),
 		},
 		Ssh: &linkedca.SSHClaims{
 			UserDurations: &linkedca.Durations{
@@ -281,7 +281,7 @@ func addAction(ctx *cli.Context) (err error) {
 				Max:     ctx.String("ssh-host-max-dur"),
 				Default: ctx.String("ssh-host-default-dur"),
 			},
-			Enabled: !(ctx.IsSet("ssh") && ctx.Bool("ssh") == false),
+			Enabled: !(ctx.IsSet("ssh") && !ctx.Bool("ssh")),
 		},
 		DisableRenewal: ctx.Bool("disable-renewal"),
 	}
