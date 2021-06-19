@@ -160,6 +160,17 @@ provisioning tokens.`,
 			// ACME provisioner flags
 			forceCNFlag,
 
+			// Cloud provisioner flags
+			awsAccountFlag,
+			azureTenantFlag,
+			azureResourceGroupFlag,
+			gcpServiceAccountFlag,
+			gcpProjectFlag,
+			instanceAgeFlag,
+			iidRootsFlag,
+			disableCustomSANsFlag,
+			disableTOFUFlag,
+
 			flags.X5cCert,
 			flags.X5cKey,
 			flags.PasswordFile,
@@ -310,7 +321,16 @@ func addAction(ctx *cli.Context) (err error) {
 	case linkedca.Provisioner_OIDC.String():
 		p.Type = linkedca.Provisioner_OIDC
 		p.Details, err = createOIDCDetails(ctx)
-	// TODO add GCP, Azure, AWS, and SCEP provisioner support.
+	case linkedca.Provisioner_AWS.String():
+		p.Type = linkedca.Provisioner_AWS
+		p.Details, err = createAWSDetails(ctx)
+	case linkedca.Provisioner_AZURE.String():
+		p.Type = linkedca.Provisioner_AZURE
+		p.Details, err = createAzureDetails(ctx)
+	case linkedca.Provisioner_GCP.String():
+		p.Type = linkedca.Provisioner_GCP
+		p.Details, err = createGCPDetails(ctx)
+	// TODO add SCEP provisioner support.
 	default:
 		return fmt.Errorf("unsupported provisioner type %s", typ)
 	}
@@ -574,6 +594,63 @@ func createOIDCDetails(ctx *cli.Context) (*linkedca.ProvisionerDetails, error) {
 				Groups:                ctx.StringSlice("group"),
 				ListenAddress:         ctx.String("listen-address"),
 				TenantId:              ctx.String("tenant-id"),
+			},
+		},
+	}, nil
+}
+
+func createAWSDetails(ctx *cli.Context) (*linkedca.ProvisionerDetails, error) {
+	d, err := parseIntaceAge(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &linkedca.ProvisionerDetails{
+		Data: &linkedca.ProvisionerDetails_AWS{
+			AWS: &linkedca.AWSProvisioner{
+				Accounts:               ctx.StringSlice("aws-account"),
+				DisableCustomSans:      ctx.Bool("disable-custom-sans"),
+				DisableTrustOnFirstUse: ctx.Bool("disable-trust-on-first-use"),
+				InstanceAge:            d,
+				// TODO IID Roots
+				// IIDRoots:               ctx.String("iid-roots"),
+			},
+		},
+	}, nil
+}
+
+func createAzureDetails(ctx *cli.Context) (*linkedca.ProvisionerDetails, error) {
+	tenantID := ctx.String("azure-tenant")
+	if tenantID == "" {
+		return nil, errs.RequiredWithFlagValue(ctx, "type", ctx.String("type"), "azure-tenant")
+	}
+
+	return &linkedca.ProvisionerDetails{
+		Data: &linkedca.ProvisionerDetails_Azure{
+			Azure: &linkedca.AzureProvisioner{
+				TenantId:               tenantID,
+				ResourceGroups:         ctx.StringSlice("azure-resource-group"),
+				DisableCustomSans:      ctx.Bool("disable-custom-sans"),
+				DisableTrustOnFirstUse: ctx.Bool("disable-trust-on-first-use"),
+			},
+		},
+	}, nil
+}
+
+func createGCPDetails(ctx *cli.Context) (*linkedca.ProvisionerDetails, error) {
+	d, err := parseIntaceAge(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &linkedca.ProvisionerDetails{
+		Data: &linkedca.ProvisionerDetails_GCP{
+			GCP: &linkedca.GCPProvisioner{
+				ServiceAccounts:        ctx.StringSlice("gcp-service-account"),
+				ProjectIds:             ctx.StringSlice("gcp-project"),
+				DisableCustomSans:      ctx.Bool("disable-custom-sans"),
+				DisableTrustOnFirstUse: ctx.Bool("disable-trust-on-first-use"),
+				InstanceAge:            d,
 			},
 		},
 	}, nil

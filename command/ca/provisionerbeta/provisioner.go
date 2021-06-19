@@ -1,6 +1,11 @@
 package provisionerbeta
 
-import "github.com/urfave/cli"
+import (
+	"time"
+
+	"github.com/smallstep/cli/errs"
+	"github.com/urfave/cli"
+)
 
 // Command returns the jwk subcommand.
 func Command() cli.Command {
@@ -62,6 +67,21 @@ Remove a provisioner:
 $ step beta ca provisioner remove max@smallstep.com
 '''`,
 	}
+}
+
+func parseIntaceAge(ctx *cli.Context) (age string, err error) {
+	if !ctx.IsSet("instance-age") {
+		return
+	}
+	age = ctx.String("instance-age")
+	dur, err := time.ParseDuration(age)
+	if err != nil {
+		return "", err
+	}
+	if dur < 0 {
+		return "", errs.MinSizeFlag(ctx, "instance-age", "0s")
+	}
+	return
 }
 
 var (
@@ -132,5 +152,54 @@ var (
 	forceCNFlag = cli.BoolFlag{
 		Name:  "force-cn",
 		Usage: `Always set the common name in provisioned certificates.`,
+	}
+
+	// Cloud provisioner flags
+	awsAccountFlag = cli.StringSliceFlag{
+		Name: "aws-account",
+		Usage: `The AWS account <id> used to validate the identity documents.
+Use the flag multiple times to configure multiple accounts.`,
+	}
+	azureTenantFlag = cli.StringFlag{
+		Name:  "azure-tenant",
+		Usage: `The Microsoft Azure tenant <id> used to validate the identity tokens.`,
+	}
+	azureResourceGroupFlag = cli.StringSliceFlag{
+		Name: "azure-resource-group",
+		Usage: `The Microsoft Azure resource group <name> used to validate the identity tokens.
+Use the flag multipl etimes to configure multiple resource groups`,
+	}
+	gcpServiceAccountFlag = cli.StringSliceFlag{
+		Name: "gcp-service-account",
+		Usage: `The Google service account <email> or <id> used to validate the identity tokens.
+Use the flag multiple times to configure multiple service accounts.`,
+	}
+	gcpProjectFlag = cli.StringSliceFlag{
+		Name: "gcp-project",
+		Usage: `The Google project <id> used to validate the identity tokens.
+Use the flag multipl etimes to configure multiple projects`,
+	}
+	instanceAgeFlag = cli.DurationFlag{
+		Name: "instance-age",
+		Usage: `The maximum <duration> to grant a certificate in AWS and GCP provisioners.
+A <duration> is sequence of decimal numbers, each with optional fraction and a
+unit suffix, such as "300ms", "-1.5h" or "2h45m". Valid time units are "ns",
+"us" (or "µs"), "ms", "s", "m", "h".`,
+	}
+	iidRootsFlag = cli.StringFlag{
+		Name: "iid-roots",
+		Usage: `The <path> to the file containing the certificates used to validate the
+instance identity documents in AWS.`,
+	}
+	disableCustomSANsFlag = cli.BoolFlag{
+		Name: "disable-custom-sans",
+		Usage: `On cloud provisioners, if anabled only the internal DNS and IP will be added as a SAN.
+By default it will accept any SAN in the CSR.`,
+	}
+	disableTOFUFlag = cli.BoolFlag{
+		Name: "disable-trust-on-first-use,disable-tofu",
+		Usage: `On cloud provisioners, if enabled multiple sign request for this provisioner
+with the same instance will be accepted. By default only the first request
+will be accepted.`,
 	}
 )
