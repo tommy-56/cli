@@ -29,7 +29,7 @@ require (
 	github.com/samfoo/ansi v0.0.0-20160124022901-b6bd2ded7189
 	github.com/shurcooL/sanitized_anchor_name v1.0.0
 	github.com/smallstep/assert v0.0.0-20200723003110-82e2b9b3b262
-	github.com/smallstep/certificates v0.16.0-rc.2.0.20210614062248-56e5e64d14fd // indirect
+	github.com/smallstep/certificates v0.16.0-rc.2.0.20210619035450-a1d17bf7cf96 // indirect
 	github.com/smallstep/certinfo v1.5.0
 	github.com/smallstep/nosql v0.3.6 // indirect
 	github.com/smallstep/truststore v0.9.6
@@ -58,7 +58,7 @@ require (
 // For more information see https://github.com/etcd-io/etcd/issues/12124
 replace google.golang.org/grpc => google.golang.org/grpc v1.32.0
 
-replace github.com/smallstep/certificates => ../certificates
+//replace github.com/smallstep/certificates => ../certificates
 
 //replace go.step.sm/linkedca => ../linkedca
 
