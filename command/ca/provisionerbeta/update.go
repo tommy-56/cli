@@ -92,6 +92,12 @@ will not have restrictions in the certificates to sign. Use the
 '--admin' flag multiple times to configure multiple administrators.`,
 			},
 			cli.StringSliceFlag{
+				Name: "remove-admin",
+				Usage: `Remove the <email> of an admin user in an OpenID Connect provisioner, this user
+will not have restrictions in the certificates to sign. Use the
+'--admin' flag multiple times to configure multiple administrators.`,
+			},
+			cli.StringSliceFlag{
 				Name: "group",
 				Usage: `The <group> list used to validate the groups extenstion in an OpenID Connect token.
 Use the '--group' flag multiple times to configure multiple groups.`,
@@ -111,14 +117,14 @@ provisioning tokens.`,
 			forceCNFlag,
 
 			// Cloud provisioner flags
-			addAWSAccountFlag,
+			awsAccountFlag,
 			removeAWSAccountFlag,
 			azureTenantFlag,
-			addAzureResourceGroupFlag,
+			azureResourceGroupFlag,
 			removeAzureResourceGroupFlag,
-			addGCPServiceAccountFlag,
+			gcpServiceAccountFlag,
 			removeGCPServiceAccountFlag,
-			addGCPProjectFlag,
+			gcpProjectFlag,
 			removeGCPProjectFlag,
 			instanceAgeFlag,
 			iidRootsFlag,
@@ -558,8 +564,11 @@ func updateOIDCDetails(ctx *cli.Context, p *linkedca.Provisioner) error {
 	if ctx.IsSet("client-secret") {
 		details.ClientSecret = ctx.String("client-secret")
 	}
+	if ctx.IsSet("remove-admin") {
+		details.Admins = removeElements(details.Admins, ctx.StringSlice("remove-admin"))
+	}
 	if ctx.IsSet("admin") {
-		details.Admins = ctx.StringSlice("admin")
+		details.Admins = append(details.Admins, ctx.StringSlice("admin")...)
 	}
 	if ctx.IsSet("domain") {
 		details.Domains = ctx.StringSlice("domain")
@@ -607,7 +616,7 @@ func updateAWSDetails(ctx *cli.Context, p *linkedca.Provisioner) error {
 	if ctx.IsSet("remove-aws-account") {
 		details.Accounts = removeElements(details.Accounts, ctx.StringSlice("remove-aws-account"))
 	}
-	if ctx.IsSet("add-aws-account") {
+	if ctx.IsSet("aws-account") {
 		details.Accounts = append(details.Accounts, ctx.StringSlice("add-aws-account")...)
 	}
 	return nil
@@ -632,7 +641,7 @@ func updateAzureDetails(ctx *cli.Context, p *linkedca.Provisioner) error {
 	if ctx.IsSet("remove-azure-resource-group") {
 		details.ResourceGroups = removeElements(details.ResourceGroups, ctx.StringSlice("remove-azure-resource-group"))
 	}
-	if ctx.IsSet("add-azure-resource-group") {
+	if ctx.IsSet("azure-resource-group") {
 		details.ResourceGroups = append(details.ResourceGroups, ctx.StringSlice("add-azure-resource-group")...)
 	}
 	return nil
@@ -661,13 +670,13 @@ func updateGCPDetails(ctx *cli.Context, p *linkedca.Provisioner) error {
 	if ctx.IsSet("remove-gcp-service-account") {
 		details.ServiceAccounts = removeElements(details.ServiceAccounts, ctx.StringSlice("remove-gcp-service-account"))
 	}
-	if ctx.IsSet("add-gcp-service-account") {
+	if ctx.IsSet("gcp-service-account") {
 		details.ServiceAccounts = append(details.ServiceAccounts, ctx.StringSlice("add-gcp-service-account")...)
 	}
 	if ctx.IsSet("remove-gcp-project") {
 		details.ProjectIds = removeElements(details.ProjectIds, ctx.StringSlice("gcp-project"))
 	}
-	if ctx.IsSet("add-gcp-project") {
+	if ctx.IsSet("gcp-project") {
 		details.ServiceAccounts = append(details.ProjectIds, ctx.StringSlice("add-gcp-project")...)
 	}
 	return nil
