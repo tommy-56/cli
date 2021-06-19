@@ -84,6 +84,22 @@ func parseIntaceAge(ctx *cli.Context) (age string, err error) {
 	return
 }
 
+func removeElements(list []string, rems []string) []string {
+	if len(list) == 0 {
+		return list
+	}
+	for _, rem := range rems {
+		for i, elem := range list {
+			if elem == rem {
+				list[i] = list[len(list)-1]
+				list = list[:len(list)-1]
+				break
+			}
+		}
+	}
+	return list
+}
+
 var (
 	x509TemplateFlag = cli.StringFlag{
 		Name:  "x509-template",
@@ -160,6 +176,16 @@ var (
 		Usage: `The AWS account <id> used to validate the identity documents.
 Use the flag multiple times to configure multiple accounts.`,
 	}
+	addAWSAccountFlag = cli.StringSliceFlag{
+		Name: "add-aws-account",
+		Usage: `Add an AWS account <id> used to validate the identity documents.
+Use the flag multiple times to add multiple accounts.`,
+	}
+	removeAWSAccountFlag = cli.StringSliceFlag{
+		Name: "remove-aws-account",
+		Usage: `Remove an AWS account <id> used to validate the identity documents.
+Use the flag multiple times to remove multiple accounts.`,
+	}
 	azureTenantFlag = cli.StringFlag{
 		Name:  "azure-tenant",
 		Usage: `The Microsoft Azure tenant <id> used to validate the identity tokens.`,
@@ -169,14 +195,44 @@ Use the flag multiple times to configure multiple accounts.`,
 		Usage: `The Microsoft Azure resource group <name> used to validate the identity tokens.
 Use the flag multipl etimes to configure multiple resource groups`,
 	}
+	addAzureResourceGroupFlag = cli.StringSliceFlag{
+		Name: "add-azure-resource-group",
+		Usage: `Add a Microsoft Azure resource group <name> used to validate the identity tokens.
+Use the flag multipl etimes to configure multiple resource groups`,
+	}
+	removeAzureResourceGroupFlag = cli.StringSliceFlag{
+		Name: "remove-azure-resource-group",
+		Usage: `Remove a Microsoft Azure resource group <name> used to validate the identity tokens.
+Use the flag multipl etimes to configure multiple resource groups`,
+	}
 	gcpServiceAccountFlag = cli.StringSliceFlag{
 		Name: "gcp-service-account",
 		Usage: `The Google service account <email> or <id> used to validate the identity tokens.
 Use the flag multiple times to configure multiple service accounts.`,
 	}
+	addGCPServiceAccountFlag = cli.StringSliceFlag{
+		Name: "add-gcp-service-account",
+		Usage: `Add a Google service account <email> or <id> used to validate the identity tokens.
+Use the flag multiple times to configure multiple service accounts.`,
+	}
+	removeGCPServiceAccountFlag = cli.StringSliceFlag{
+		Name: "remove-gcp-service-account",
+		Usage: `Remove a Google service account <email> or <id> used to validate the identity tokens.
+Use the flag multiple times to configure multiple service accounts.`,
+	}
 	gcpProjectFlag = cli.StringSliceFlag{
 		Name: "gcp-project",
 		Usage: `The Google project <id> used to validate the identity tokens.
+Use the flag multipl etimes to configure multiple projects`,
+	}
+	addGCPProjectFlag = cli.StringSliceFlag{
+		Name: "add-gcp-project",
+		Usage: `Add a Google project <id> used to validate the identity tokens.
+Use the flag multipl etimes to configure multiple projects`,
+	}
+	removeGCPProjectFlag = cli.StringSliceFlag{
+		Name: "remove-gcp-project",
+		Usage: `Remove a Google project <id> used to validate the identity tokens.
 Use the flag multipl etimes to configure multiple projects`,
 	}
 	instanceAgeFlag = cli.DurationFlag{

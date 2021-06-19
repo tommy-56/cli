@@ -110,6 +110,21 @@ provisioning tokens.`,
 			// ACME provisioner flags
 			forceCNFlag,
 
+			// Cloud provisioner flags
+			addAWSAccountFlag,
+			removeAWSAccountFlag,
+			azureTenantFlag,
+			addAzureResourceGroupFlag,
+			removeAzureResourceGroupFlag,
+			addGCPServiceAccountFlag,
+			removeGCPServiceAccountFlag,
+			addGCPProjectFlag,
+			removeGCPProjectFlag,
+			instanceAgeFlag,
+			iidRootsFlag,
+			disableCustomSANsFlag,
+			disableTOFUFlag,
+
 			flags.X5cCert,
 			flags.X5cKey,
 			flags.PasswordFile,
@@ -173,7 +188,13 @@ func updateAction(ctx *cli.Context) (err error) {
 		err = updateK8SSADetails(ctx, p)
 	case linkedca.Provisioner_OIDC:
 		err = updateOIDCDetails(ctx, p)
-	// TODO add GCP, Azure, AWS, and SCEP provisioner support.
+	case linkedca.Provisioner_AWS:
+		err = updateAWSDetails(ctx, p)
+	case linkedca.Provisioner_AZURE:
+		err = updateAzureDetails(ctx, p)
+	case linkedca.Provisioner_GCP:
+		err = updateGCPDetails(ctx, p)
+	// TODO add SCEP provisioner support.
 	default:
 		return fmt.Errorf("unsupported provisioner type %s", p.Type.String())
 	}
@@ -559,6 +580,95 @@ func updateOIDCDetails(ctx *cli.Context, p *linkedca.Provisioner) error {
 			return errs.InvalidFlagValue(ctx, "configuration-endpoint", ce, "")
 		}
 		details.ConfigurationEndpoint = ce
+	}
+	return nil
+}
+
+func updateAWSDetails(ctx *cli.Context, p *linkedca.Provisioner) error {
+	data, ok := p.Details.GetData().(*linkedca.ProvisionerDetails_AWS)
+	if !ok {
+		return errors.New("error casting details to OIDC type")
+	}
+	details := data.AWS
+
+	var err error
+	if ctx.IsSet("instance-age") {
+		details.InstanceAge, err = parseIntaceAge(ctx)
+		if err != nil {
+			return err
+		}
+	}
+	if ctx.IsSet("disable-custom-sans") {
+		details.DisableCustomSans = ctx.Bool("disable-custom-sans")
+	}
+	if ctx.IsSet("disable-trust-on-first-use") {
+		details.DisableCustomSans = ctx.Bool("disable-trust-on-first-use")
+	}
+	if ctx.IsSet("remove-aws-account") {
+		details.Accounts = removeElements(details.Accounts, ctx.StringSlice("remove-aws-account"))
+	}
+	if ctx.IsSet("add-aws-account") {
+		details.Accounts = append(details.Accounts, ctx.StringSlice("add-aws-account")...)
+	}
+	return nil
+}
+
+func updateAzureDetails(ctx *cli.Context, p *linkedca.Provisioner) error {
+	data, ok := p.Details.GetData().(*linkedca.ProvisionerDetails_Azure)
+	if !ok {
+		return errors.New("error casting details to OIDC type")
+	}
+	details := data.Azure
+
+	if ctx.IsSet("azure-tenant") {
+		details.TenantId = ctx.String("azure-tenant")
+	}
+	if ctx.IsSet("disable-custom-sans") {
+		details.DisableCustomSans = ctx.Bool("disable-custom-sans")
+	}
+	if ctx.IsSet("disable-trust-on-first-use") {
+		details.DisableCustomSans = ctx.Bool("disable-trust-on-first-use")
+	}
+	if ctx.IsSet("remove-azure-resource-group") {
+		details.ResourceGroups = removeElements(details.ResourceGroups, ctx.StringSlice("remove-azure-resource-group"))
+	}
+	if ctx.IsSet("add-azure-resource-group") {
+		details.ResourceGroups = append(details.ResourceGroups, ctx.StringSlice("add-azure-resource-group")...)
+	}
+	return nil
+}
+
+func updateGCPDetails(ctx *cli.Context, p *linkedca.Provisioner) error {
+	data, ok := p.Details.GetData().(*linkedca.ProvisionerDetails_GCP)
+	if !ok {
+		return errors.New("error casting details to OIDC type")
+	}
+	details := data.GCP
+
+	var err error
+	if ctx.IsSet("instance-age") {
+		details.InstanceAge, err = parseIntaceAge(ctx)
+		if err != nil {
+			return err
+		}
+	}
+	if ctx.IsSet("disable-custom-sans") {
+		details.DisableCustomSans = ctx.Bool("disable-custom-sans")
+	}
+	if ctx.IsSet("disable-trust-on-first-use") {
+		details.DisableCustomSans = ctx.Bool("disable-trust-on-first-use")
+	}
+	if ctx.IsSet("remove-gcp-service-account") {
+		details.ServiceAccounts = removeElements(details.ServiceAccounts, ctx.StringSlice("remove-gcp-service-account"))
+	}
+	if ctx.IsSet("add-gcp-service-account") {
+		details.ServiceAccounts = append(details.ServiceAccounts, ctx.StringSlice("add-gcp-service-account")...)
+	}
+	if ctx.IsSet("remove-gcp-project") {
+		details.ProjectIds = removeElements(details.ProjectIds, ctx.StringSlice("gcp-project"))
+	}
+	if ctx.IsSet("add-gcp-project") {
+		details.ServiceAccounts = append(details.ProjectIds, ctx.StringSlice("add-gcp-project")...)
 	}
 	return nil
 }
