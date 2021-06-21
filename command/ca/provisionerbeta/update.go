@@ -28,10 +28,36 @@ import (
 
 func updateCommand() cli.Command {
 	return cli.Command{
-		Name:      "update",
-		Action:    cli.ActionFunc(updateAction),
-		Usage:     "update a provisioner",
-		UsageText: `**step beta ca provisioner update** <name> [flags]`,
+		Name:   "update",
+		Action: cli.ActionFunc(updateAction),
+		Usage:  "update a provisioner",
+		UsageText: `**step beta ca provisioner update** <name> [**--public-key**=<file>]
+[**--private-key**=<file>] [**--create**] [**--password-file**=<file>]
+[**--ca-url**=<uri>] [**--root**=<file>]
+
+**step beta ca provisioner update** <name> [**--force-cn**]
+[**--ca-url**=<uri>] [**--root**=<file>]
+
+**step beta ca provisioner update** <name>
+[**--client-id**=<id>] [**--client-secret**=<secret>]
+[**--configuration-endpoint**=<url>] [**--domain**=<domain>]
+[**--admin**=<email>]... [**--remove-admin**=<email>]...
+[**--ca-url**=<uri>] [**--root**=<file>]
+
+**step beta ca provisioner update** <name> **--x5c-root**=<file>
+[**--ca-url**=<uri>] [**--root**=<file>]
+
+**step beta ca provisioner update** <name> [**--public-key**=<file>]
+[**--ca-url**=<uri>] [**--root**=<file>]
+
+**step beta ca provisioner update** <name>
+[**--aws-account**=<id>]... [**--remove-aws-account**=<id>]...
+[**--gcp-service-account**=<name>]... [**--remove-gcp-service-account**=<name>]...
+[**--gcp-project**=<name>]... [**--remove-gcp-project**=<name]...
+[**--azure-tenant**=<id>] [**--azure-resource-group**=<name>]
+[**--instance-age**=<duration>] [**--iid-roots**=<file>]
+[**--disable-custom-sans**] [**--disable-trust-on-first-use**]
+[**--ca-url**=<uri>] [**--root**=<file>]`,
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "name",
@@ -137,7 +163,7 @@ provisioning tokens.`,
 			flags.CaURL,
 			flags.Root,
 		},
-		Description: `**step ca provisioner update** updates a provisioner.
+		Description: `**step ca provisioner update** updates a provisioner in the CA configuration.
 
 ## POSITIONAL ARGUMENTS
 
@@ -146,10 +172,63 @@ provisioning tokens.`,
 
 ## EXAMPLES
 
-Update a JWK provisioner with a new key pair, adjusted claims, and a new x509 template:
+Update a JWK provisioner with newly generated keys and a template for x509 certificates:
 '''
-step beta ca provisioner update admin-jwk --create \
-	--x509-min-dur 4m --x509-default-dur 13h --x509-template ./templates/x509-example.tpl
+step beta ca provisioner update cicd --create --x509-template ./templates/example.tpl
+'''
+
+Update a JWK provisioner with duration claims:
+'''
+step beta ca provisioner update cicd --create --x509-min-dur 20m --x509-default-dur 48h --ssh-user-min-dur 17m --ssh-host-default-dur 16h
+'''
+
+Update a JWK provisioner with existing keys:
+'''
+step beta ca provisioner update jane@doe.com --public-key jwk.pub --private-key jwk.priv
+'''
+
+Update a JWK provisioner to disable ssh provisioning:
+'''
+step beta ca provisioner update cicd --ssh=false
+'''
+
+Update an OIDC provisioner:
+'''
+step beta ca provisioner update Google \
+	--configuration-endpoint https://accounts.google.com/.well-known/openid-configuration
+'''
+
+Update an X5C provisioner:
+'''
+step beta ca provisioner update x5c --x5c-root x5c_ca.crt
+'''
+
+Update an ACME provisioner:
+'''
+step beta ca provisioner update acme --force-cn
+'''
+
+Update an K8SSA provisioner:
+'''
+step beta ca provisioner update kube --public-key key.pub --x509-min-duration 30m
+'''
+
+Update an Azure provisioner:
+'''
+$ step beta ca provisioner update Azure \
+  --azure-resource-group identity --azure-resource-group accounting
+'''
+
+Update an GCP provisioner:
+'''
+$ step beta ca provisioner update Google \
+  --disable-custom-sans --gcp-project internal --remove-gcp-project public
+'''
+
+Update an AWS provisioner:
+document and will allow multiple certificates from the same instance:
+'''
+$ step beta ca provisioner update Amazon --disable-custom-sans --disable-trust-on-first-use
 '''`,
 	}
 }

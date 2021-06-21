@@ -31,7 +31,7 @@ func getCommand() cli.Command {
 
 Get a provisioner by name:
 '''
-$ step beta ca provisioner get admin-jwk
+$ step beta ca provisioner get acme
 '''
 `,
 	}

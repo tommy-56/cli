@@ -33,25 +33,31 @@ func addCommand() cli.Command {
 		Usage:  "add a provisioner",
 		UsageText: `**step beta ca provisioner add** <name> **--type**=JWK [**--public-key**=<file>]
 [**--private-key**=<file>] [**--create**] [**--password-file**=<file>]
+[**--ca-url**=<uri>] [**--root**=<file>]
 
 **step beta ca provisioner add** <name> **--type**=OIDC
 [**--client-id**=<id>] [**--client-secret**=<secret>]
 [**--configuration-endpoint**=<url>] [**--domain**=<domain>]
-[**--admin**=<email>]...
+[**--admin**=<email>]... [**--ca-url**=<uri>] [**--root**=<file>]
 
-**step beta ca provisioner add** <name> **--type**=X5C **--x5c-root**=<file> ...
+**step beta ca provisioner add** <name> **--type**=X5C **--x5c-root**=<file>
+[**--ca-url**=<uri>] [**--root**=<file>]
 
-**step beta ca provisioner add** <name> **--type**=SSHPOP **--x5c-root**=<file> ...
+**step beta ca provisioner add** <name> **--type**=SSHPOP **--x5c-root**=<file>
+[**--ca-url**=<uri>] [**--root**=<file>]
 
-**step beta ca provisioner add** <name> **--type**=K8SSA [**--pem-keys=<file>**] ...
+**step beta ca provisioner add** <name> **--type**=K8SSA [**--public-key**=<file>]
+[**--ca-url**=<uri>] [**--root**=<file>]
 
 **step beta ca provisioner add** <name> **--type**=[AWS|Azure|GCP]
 [**--aws-account**=<id>] [**--gcp-service-account**=<name>] [**--gcp-project**=<name>]
 [**--azure-tenant**=<id>] [**--azure-resource-group**=<name>]
-[**--instance-age**=<duration>] [**--iid-roots**=<path>]
+[**--instance-age**=<duration>] [**--iid-roots**=<file>]
 [**--disable-custom-sans**] [**--disable-trust-on-first-use**]
+[**--ca-url**=<uri>] [**--root**=<file>]
 
-**step beta ca provisioner add** <name> **--type**=ACME **--ca-config**=<file>`,
+**step beta ca provisioner add** <name> **--type**=ACME [**--force-cn**]
+[**--ca-url**=<uri>] [**--root**=<file>]`,
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "type",
@@ -186,12 +192,22 @@ provisioning tokens.`,
 
 ## EXAMPLES
 
-Create a JWK provisioner enabled for SSH certificates:
+Create a JWK provisioner with newly generated keys and a template for x509 certificates:
 '''
-step beta ca provisioner add jane@doe.com --type JWK --ssh --jwk-file jwk.priv
+step beta ca provisioner add cicd --type JWK --create --x509-template ./templates/example.tpl
 '''
 
-Create an OIDC provisioner enabled for SSH certificates:
+Create a JWK provisioner with duration claims:
+'''
+step beta ca provisioner add cicd --type JWK --create --x509-min-dur 20m --x509-default-dur 48h --ssh-user-min-dur 17m --ssh-host-default-dur 16h
+'''
+
+Create a JWK provisioner with existing keys:
+'''
+step beta ca provisioner add jane@doe.com --type JWK --public-key jwk.pub --private-key jwk.priv
+'''
+
+Create an OIDC provisioner:
 '''
 step beta ca provisioner add Google --type OIDC --ssh \
 	--client-id 1087160488420-8qt7bavg3qesdhs6it824mhnfgcfe8il.apps.googleusercontent.com \
@@ -204,7 +220,7 @@ Create an X5C provisioner:
 step beta ca provisioner add x5c --type X5C --x5c-root x5c_ca.crt
 '''
 
-Create an ACME provisioner
+Create an ACME provisioner:
 '''
 step beta ca provisioner add acme --type ACME
 '''
@@ -217,6 +233,33 @@ step beta ca provisioner add kube --type K8SSA --ssh --public-key key.pub
 Create an SSHPOP provisioner for renewing SSH host certificates:")
 '''
 step beta ca provisioner add sshpop --type SSHPOP
+'''
+
+Create an Azure provisioner with two service groups:
+'''
+$ step beta ca provisioner add Azure --type Azure \
+  --azure-tenant bc9043e2-b645-4c1c-a87a-78f8644bfe57 \
+  --azure-resource-group identity --azure-resource-group accounting
+'''
+
+Create an GCP provisioner that will only accept the SANs provided in the identity token:
+'''
+$ step beta ca provisioner add Google --type GCP \
+  --disable-custom-sans --gcp-project internal
+'''
+
+Create an AWS provisioner that will only accept the SANs provided in the identity
+document and will allow multiple certificates from the same instance:
+'''
+$ step beta ca provisioner add Amazon --type AWS \
+  --aws-account 123456789 --disable-custom-sans --disable-trust-on-first-use
+'''
+
+Create an AWS provisioner that will use a custom certificate to validate the instance
+identity documents:
+'''
+$ step beta ca provisioner add Amazon --type AWS \
+  --aws-account 123456789 --iid-roots $(step path)/certs/aws.crt
 '''`,
 	}
 }

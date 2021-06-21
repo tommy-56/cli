@@ -45,7 +45,7 @@ func addCommand() cli.Command {
 [**--ca-config**=<file>] [**--aws-account**=<id>]
 [**--gcp-service-account**=<name>] [**--gcp-project**=<name>]
 [**--azure-tenant**=<id>] [**--azure-resource-group**=<name>]
-[**--instance-age**=<duration>] [**--iid-roots**=<path>]
+[**--instance-age**=<duration>] [**--iid-roots**=<file>]
 [**--disable-custom-sans**] [**--disable-trust-on-first-use**]
 
 **step ca provisioner add** <name> **--type**=ACME **--ca-config**=<file>`,
