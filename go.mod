@@ -29,7 +29,7 @@ require (
 	github.com/samfoo/ansi v0.0.0-20160124022901-b6bd2ded7189
 	github.com/shurcooL/sanitized_anchor_name v1.0.0
 	github.com/smallstep/assert v0.0.0-20200723003110-82e2b9b3b262
-	github.com/smallstep/certificates v0.16.0-rc.2.0.20210619035450-a1d17bf7cf96 // indirect
+	github.com/smallstep/certificates v0.16.0-rc.2.0.20210619035450-a1d17bf7cf96
 	github.com/smallstep/certinfo v1.5.0
 	github.com/smallstep/nosql v0.3.6 // indirect
 	github.com/smallstep/truststore v0.9.6
@@ -40,7 +40,7 @@ require (
 	go.mozilla.org/pkcs7 v0.0.0-20200128120323-432b2356ecb1
 	go.step.sm/cli-utils v0.4.0 // indirect
 	go.step.sm/crypto v0.8.3
-	go.step.sm/linkedca v0.0.0-20210611183751-27424aae8d25 // indirect
+	go.step.sm/linkedca v0.0.0-20210611183751-27424aae8d25
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
 	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
