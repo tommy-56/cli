@@ -66,9 +66,5 @@ func removeAction(ctx *cli.Context) error {
 		return err
 	}
 
-	if err := client.RemoveAdmin(adm.Id); err != nil {
-		return err
-	}
-
-	return nil
+	return client.RemoveAdmin(adm.Id)
 }

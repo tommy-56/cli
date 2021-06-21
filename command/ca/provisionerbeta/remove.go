@@ -46,9 +46,5 @@ func removeAction(ctx *cli.Context) (err error) {
 		return err
 	}
 
-	if err := client.RemoveProvisioner(ca.WithProvisionerName(name)); err != nil {
-		return err
-	}
-
-	return nil
+	return client.RemoveProvisioner(ca.WithProvisionerName(name))
 }
