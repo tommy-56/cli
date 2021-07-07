@@ -7,7 +7,6 @@ import (
 	"github.com/smallstep/cli/errs"
 	"github.com/urfave/cli"
 	"io/ioutil"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -118,7 +117,6 @@ func needsRenewalAction(ctx *cli.Context) error {
 
 	}
 
-	renew := false
 	for _, block := range blocks {
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
@@ -127,48 +125,34 @@ func needsRenewalAction(ctx *cli.Context) error {
 		var remainingValidity = time.Until(cert.NotAfter)
 		var totalValidity = cert.NotAfter.Sub(cert.NotBefore)
 		var percentUsed = (1 - remainingValidity.Minutes()/totalValidity.Minutes()) * 100
-		if expiresIn != "" {
-			if strings.Contains(expiresIn, "%") {
-				percentageInput, err := strconv.Atoi(strings.TrimSuffix(expiresIn, "%"))
 
-				if err != nil {
-					return errs.NewExitError(err, 255)
-				}
-				if percentageInput > 100 || percentageInput < 0 {
-					return errs.NewExitError(errors.Errorf("Percentage must be in range 0-100"), 255)
-				}
-
-				if percentageInput > int(percentUsed) {
-					continue
-				} else {
-					renew = true
-				}
-
+		if expiresIn == "" || strings.Contains(expiresIn, "%") {
+			var threshold int
+			if expiresIn == "" {
+				threshold = defaultPercentUsedThreshold
 			} else {
-				duration, err := time.ParseDuration(expiresIn)
-
+				threshold, err = strconv.Atoi(strings.TrimSuffix(expiresIn, "%"))
 				if err != nil {
 					return errs.NewExitError(err, 255)
-				} else if duration.Minutes() > remainingValidity.Minutes() {
-					renew = true
 				}
 			}
+			if threshold > 100 || threshold < 0 {
+				return errs.NewExitError(errors.Errorf("Percentage must be in range 0-100"), 255)
+			}
+
+			if int(percentUsed) >= threshold {
+				return nil
+			}
 		} else {
-			if percentUsed >= defaultPercentUsedThreshold {
-				renew = true
-			} else if percentUsed < defaultPercentUsedThreshold {
-				continue
-			} else {
-				return errs.NewExitError(errors.Errorf("Can not determine remaining lifetime on certificate %s", crtFile), 255)
+			duration, err := time.ParseDuration(expiresIn)
+
+			if err != nil {
+				return errs.NewExitError(err, 255)
+			} else if duration.Minutes() > remainingValidity.Minutes() {
+				return nil
 			}
 		}
 	}
-	//Can't return nil or os.Exit without breaking loop
-	if !renew {
-		os.Exit(1)
-	} else {
-		return nil
-	}
 
-	return nil
+	return errs.NewExitError(errors.Errorf("Certificate does not need renewal"), 1)
 }
