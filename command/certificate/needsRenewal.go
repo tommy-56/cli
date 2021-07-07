@@ -164,10 +164,10 @@ func needsRenewalAction(ctx *cli.Context) error {
 		}
 	}
 	//Can't return nil or os.Exit without breaking loop
-	if renew {
-		return nil 
-	} else {
+	if !renew {
 		os.Exit(1)
+	} else {
+		return nil
 	}
 
 	return nil
