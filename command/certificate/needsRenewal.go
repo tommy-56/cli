@@ -74,7 +74,6 @@ func needsRenewalAction(ctx *cli.Context) error {
 		expiresIn  = ctx.String("expires-in")
 		roots      = ctx.String("roots")
 		serverName = ctx.String("servername")
-		//cert       *x509.Certificate
 	)
 
 	var blocks []*pem.Block
@@ -102,7 +101,7 @@ func needsRenewalAction(ctx *cli.Context) error {
 		// The first certificate PEM in the file is our leaf Certificate.
 		// Any certificate after the first is added to the list of Intermediate
 		// certificates used for path validation.
-		for len(crtBytes) > 0 { //error check here similar to instpect.go changing cert.ect to each block of array
+		for len(crtBytes) > 0 {
 			block, crtBytes = pem.Decode(crtBytes)
 			if block == nil {
 				return errs.NewExitError(errors.Errorf("%s contains an invalid PEM block", crtFile), 255)
@@ -110,12 +109,7 @@ func needsRenewalAction(ctx *cli.Context) error {
 			if block.Type != "CERTIFICATE" {
 				continue
 			}
-			//if block == nil {
-			//	blocks, err = x509.ParseCertificate(block.Bytes)
-			//	if err != nil {
-			//		return errs.NewExitError(errors.WithStack(err), 255)
-			//	}
-			//}
+
 			blocks = append(blocks, block)
 		}
 		if block == nil {
@@ -123,7 +117,7 @@ func needsRenewalAction(ctx *cli.Context) error {
 		}
 
 	}
-	//new For loop to run these checks and math against each block
+
 	renew := false
 	for _, block := range blocks {
 		cert, err := x509.ParseCertificate(block.Bytes)
@@ -133,7 +127,6 @@ func needsRenewalAction(ctx *cli.Context) error {
 		var remainingValidity = time.Until(cert.NotAfter)
 		var totalValidity = cert.NotAfter.Sub(cert.NotBefore)
 		var percentUsed = (1 - remainingValidity.Minutes()/totalValidity.Minutes()) * 100
-
 		if expiresIn != "" {
 			if strings.Contains(expiresIn, "%") {
 				percentageInput, err := strconv.Atoi(strings.TrimSuffix(expiresIn, "%"))
@@ -145,11 +138,11 @@ func needsRenewalAction(ctx *cli.Context) error {
 					return errs.NewExitError(errors.Errorf("Percentage must be in range 0-100"), 255)
 				}
 
-				//if percentageInput > int(percentUsed) {
-				//	//os.Exit(1)
-				//	//continue
-				//	renew = true
-				//}
+				if percentageInput > int(percentUsed) {
+					continue
+				} else {
+					renew = true
+				}
 
 			} else {
 				duration, err := time.ParseDuration(expiresIn)
@@ -157,17 +150,13 @@ func needsRenewalAction(ctx *cli.Context) error {
 				if err != nil {
 					return errs.NewExitError(err, 255)
 				} else if duration.Minutes() > remainingValidity.Minutes() {
-					//return nil
 					renew = true
 				}
-				//os.Exit(1)
 			}
 		} else {
 			if percentUsed >= defaultPercentUsedThreshold {
-				//return nil
 				renew = true
 			} else if percentUsed < defaultPercentUsedThreshold {
-				//os.Exit(1)
 				continue
 			} else {
 				return errs.NewExitError(errors.Errorf("Can not determine remaining lifetime on certificate %s", crtFile), 255)
@@ -176,7 +165,7 @@ func needsRenewalAction(ctx *cli.Context) error {
 	}
 	//Can't return nil or os.Exit without breaking loop
 	if renew {
-		return nil //exit code 0
+		return nil 
 	} else {
 		os.Exit(1)
 	}
