@@ -194,8 +194,7 @@ func inspectAction(ctx *cli.Context) error {
 		if err != nil {
 			return errs.FileError(err, crtFile)
 		}
-		crtBytes = bytes.TrimPrefix(crtBytes, []byte("-----"))
-		if crtBytes != nil {
+		if bytes.HasPrefix(crtBytes, []byte("-----BEGIN ")) || crtBytes != nil {
 			for len(crtBytes) > 0 {
 				block, crtBytes = pem.Decode(crtBytes)
 				if block == nil {
@@ -207,7 +206,20 @@ func inspectAction(ctx *cli.Context) error {
 				}
 				blocks = append(blocks, block)
 			}
-		} else {
+		}else if crtBytes != nil {
+			crtBytes = bytes.TrimPrefix(crtBytes, []byte("-----"))
+			for len(crtBytes) > 0 {
+				block, crtBytes = pem.Decode(crtBytes)
+				if block == nil {
+					break
+				}
+				if bundle && block.Type != "CERTIFICATE" {
+					return errors.Errorf("certificate bundle %s contains an unexpected PEM block of type %s\n\n  expected type: CERTIFICATE",
+						crtFile, block.Type)
+				}
+				blocks = append(blocks, block)
+			}
+		}else {
 			if block = derToPemBlock(crtBytes); block == nil {
 				return errors.Errorf("%s contains an invalid PEM block", crtFile)
 			}
